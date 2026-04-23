@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/member.dart';
 import '../providers/member_provider.dart';
+import 'profile_sheet.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -12,9 +13,11 @@ class UsersScreen extends StatefulWidget {
 }
 
 class _UsersScreenState extends State<UsersScreen> {
+  static const String _allRolesFilter = '__all_roles__';
+
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-  String? _roleFilter;
+  String _roleFilter = _allRolesFilter;
 
   @override
   void dispose() {
@@ -62,7 +65,10 @@ class _UsersScreenState extends State<UsersScreen> {
                         : ListView.separated(
                             itemBuilder: (context, index) {
                               final member = filteredMembers[index];
-                              return _UserCard(member: member);
+                              return _UserCard(
+                                member: member,
+                                allMembers: provider.members,
+                              );
                             },
                             separatorBuilder: (_, _) =>
                                 const SizedBox(height: 8),
@@ -107,7 +113,7 @@ class _UsersScreenState extends State<UsersScreen> {
           ),
         ),
         const SizedBox(width: 10),
-        PopupMenuButton<String?>(
+        PopupMenuButton<String>(
           tooltip: 'Filter users',
           initialValue: _roleFilter,
           onSelected: (value) {
@@ -117,13 +123,12 @@ class _UsersScreenState extends State<UsersScreen> {
           },
           itemBuilder: (context) {
             return [
-              const PopupMenuItem<String?>(
-                value: null,
+              const PopupMenuItem<String>(
+                value: _allRolesFilter,
                 child: Text('All roles'),
               ),
               ...roles.map(
-                (role) =>
-                    PopupMenuItem<String?>(value: role, child: Text(role)),
+                (role) => PopupMenuItem<String>(value: role, child: Text(role)),
               ),
             ];
           },
@@ -138,7 +143,9 @@ class _UsersScreenState extends State<UsersScreen> {
               children: [
                 const Icon(Icons.filter_list_rounded, size: 18),
                 const SizedBox(width: 6),
-                Text(_roleFilter ?? 'Filter'),
+                Text(
+                  _roleFilter == _allRolesFilter ? 'All roles' : _roleFilter,
+                ),
               ],
             ),
           ),
@@ -152,7 +159,8 @@ class _UsersScreenState extends State<UsersScreen> {
 
     return members
         .where((member) {
-          final roleMatches = _roleFilter == null || member.role == _roleFilter;
+          final roleMatches =
+              _roleFilter == _allRolesFilter || member.role == _roleFilter;
           if (!roleMatches) {
             return false;
           }
@@ -171,18 +179,21 @@ class _UsersScreenState extends State<UsersScreen> {
 }
 
 class _UserCard extends StatelessWidget {
-  const _UserCard({required this.member});
+  const _UserCard({required this.member, required this.allMembers});
 
   final Member member;
+  final List<Member> allMembers;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
+        onTap: () => showMemberProfileSheet(context, member, allMembers),
         leading: CircleAvatar(child: Text(_initials(member.name))),
         title: Text(member.name),
         subtitle: Text('${member.role}\n${member.department} • ${member.team}'),
         isThreeLine: true,
+        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }
